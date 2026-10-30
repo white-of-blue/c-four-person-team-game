@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四人小队 · 双队博弈</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#172033;--muted:#697386;--line:#e2e7f0;--blue:#3976f6;--red:#e65353;--shadow:0 8px 28px rgba(25,40,75,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{width:min(1100px,100% - 28px);margin:24px auto 48px}header{text-align:center;margin-bottom:22px}h1{font-size:clamp(25px,4vw,36px);margin:0 0 8px}.subtitle{color:var(--muted);font-size:14px}
+.scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch;margin-bottom:18px}.score{border-radius:18px;padding:18px;color:white;box-shadow:var(--shadow);min-width:0}.score.a{background:linear-gradient(135deg,#3478f6,#5c9dff)}.score.b{background:linear-gradient(135deg,#e64e58,#ff8274);text-align:right}.team-name{font-size:14px;opacity:.92}.points{font-size:clamp(32px,6vw,46px);font-weight:800;line-height:1.15;margin-top:5px}.vs{align-self:center;font-weight:800;color:#9099aa}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0 0 10px}
+.teams,.battle-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.team-panel{border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}.team-panel.a{border-top:4px solid var(--blue)}.team-panel.b{border-top:4px solid var(--red)}
+.character-row{display:grid;grid-template-columns:1fr minmax(115px,42%);gap:10px;align-items:center;margin:9px 0}.char-label{display:flex;gap:9px;align-items:center;font-size:14px}.dot{width:13px;height:13px;border-radius:50%;flex:0 0 auto}
+input,select,button{font:inherit}input[type=text],select{width:100%;border:1px solid #d5dce8;border-radius:10px;background:white;padding:10px;color:var(--ink);min-width:0}.hint{font-size:13px;line-height:1.6;color:var(--muted)}
+.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;cursor:pointer;transition:transform .12s,opacity .12s}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--blue);color:white}.neutral{background:#edf1f7;color:#27344b}.danger{background:#fff0f0;color:#b9313b}.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}.round-pill{display:inline-flex;border-radius:999px;padding:6px 11px;background:#edf2ff;color:#315fc2;font-size:13px;font-weight:700}
+.battle-team{border-radius:14px;padding:15px;border:1px solid var(--line);min-width:0}.battle-team.a{background:#f3f7ff;border-color:#d5e3ff}.battle-team.b{background:#fff5f4;border-color:#ffdcda}
+.choice-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 0}.choice{position:relative}.choice input{position:absolute;opacity:0;pointer-events:none}.choice label{display:block;text-align:center;padding:11px 5px;border:1px solid #d7deea;border-radius:11px;background:white;cursor:pointer;font-size:14px}.choice input:checked+label{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);background:#eaf1ff;color:#2458c6;font-weight:700}.battle-team.b .choice input:checked+label{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red);background:#fff0ef;color:#ba343b}
+.character-select{margin:8px 0 12px}.reveal-box{background:#f7f8fb;border:1px dashed #cbd3e1;border-radius:14px;padding:16px;margin-top:14px}.reveal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reveal-side{padding:12px;border-radius:12px;background:white;border:1px solid var(--line)}.result-title{font-weight:800;margin-bottom:6px}.log{display:grid;gap:10px}.log-item{padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff}.log-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:7px}.small{font-size:12px;color:var(--muted)}.positive{color:#128052;font-weight:700}.negative{color:#c43f49;font-weight:700}.status{padding:11px 13px;border-radius:11px;background:#f0f4fb;color:#3e4b61;font-size:14px;line-height:1.6}.winner{font-size:22px;font-weight:800;text-align:center;padding:20px 10px;border-radius:14px;background:#fff8df;color:#76550b}.footer-note{font-size:12px;color:var(--muted);line-height:1.7}.team-count{font-size:12px;color:var(--muted);margin-top:4px}
+@media(max-width:700px){.wrap{width:min(100% - 18px,600px);margin-top:15px}.teams,.battle-grid,.reveal-grid{grid-template-columns:1fr}.card{padding:15px}.scoreboard{gap:7px}.score{padding:13px;border-radius:14px}.character-row{grid-template-columns:1fr 42%;gap:7px}.character-row input{padding:9px 7px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>四人小队 · 双队博弈</h1><div class="subtitle">双人同屏 · 隐藏决策 · 四轮对抗</div></header>
+<section class="scoreboard" aria-label="双方比分"><div class="score a"><div class="team-name">🔵 蓝队</div><div class="points" id="scoreA">10</div><div class="team-name">当前分数</div></div><div class="vs">VS</div><div class="score b"><div class="team-name">🔴 红队</div><div class="points" id="scoreB">10</div><div class="team-name">当前分数</div></div></section>
+
+<section class="card">
+<h2>① 开局角色配置</h2><p class="hint">每队 4 个角色在开局绑定属性，整局不再更改。每队必须分别配置石头、剪刀、布、不接各一个。角色颜色会在双方选择时显示。</p>
+<div class="teams"><div class="team-panel a"><h3>🔵 蓝队</h3><div id="setupA"></div></div><div class="team-panel b"><h3>🔴 红队</h3><div id="setupB"></div></div></div>
+<div class="actions"><button class="btn primary" id="saveSetup">确认角色配置</button><button class="btn neutral" id="resetSetup">恢复默认配置</button></div><div id="setupMessage" class="hint" style="margin-top:10px" aria-live="polite"></div>
+</section>
+
+<section class="card">
+<h2>② 本轮选择 <span class="round-pill" id="roundLabel">第 1 / 4 轮</span></h2>
+<div class="status" id="phaseStatus">双方分别选择上场角色与隐藏决策。角色颜色可见，合作/背叛/不作为在双方确认后统一揭晓。</div>
+<div class="battle-grid" style="margin-top:14px">
+<div class="battle-team a"><h3>🔵 蓝队</h3><label class="hint" for="pickA">选择上场角色（可看见角色颜色）</label><select id="pickA" class="character-select"></select><div class="hint" id="usesA"></div><div class="hint">隐藏决策</div>
+<div class="choice-list"><div class="choice"><input type="radio" name="socialA" id="aCoop" value="合作" checked><label for="aCoop">🤝 合作</label></div><div class="choice"><input type="radio" name="socialA" id="aBetray" value="背叛"><label for="aBetray">🗡️ 背叛</label></div><div class="choice"><input type="radio" name="socialA" id="aNone" value="不作为"><label for="aNone">➖ 不作为</label></div></div>
+<div class="hint" id="lockAStatus" style="margin-top:10px">蓝队尚未锁定选择。</div><button class="btn primary" id="lockA" style="margin-top:10px;width:100%">蓝队确认并隐藏</button></div>
+<div class="battle-team b"><h3>🔴 红队</h3><label class="hint" for="pickB">选择上场角色（可看见角色颜色）</label><select id="pickB" class="character-select"></select><div class="hint" id="usesB"></div><div class="hint">隐藏决策</div>
+<div class="choice-list"><div class="choice"><input type="radio" name="socialB" id="bCoop" value="合作" checked><label for="bCoop">🤝 合作</label></div><div class="choice"><input type="radio" name="socialB" id="bBetray" value="背叛"><label for="bBetray">🗡️ 背叛</label></div><div class="choice"><input type="radio" name="socialB" id="bNone" value="不作为"><label for="bNone">➖ 不作为</label></div></div>
+<div class="hint" id="lockBStatus" style="margin-top:10px">红队尚未锁定选择。</div><button class="btn primary" id="lockB" style="margin-top:10px;width:100%">红队确认并隐藏</button></div></div>
+<div class="actions"><button class="btn primary" id="revealBtn" disabled>双方确认完毕，揭晓并结算</button><button class="btn neutral" id="nextBtn" disabled>进入下一轮</button><button class="btn danger" id="restartBtn">重新开始</button></div><div id="revealArea"></div>
+</section>
+<section class="card"><h2>③ 对局记录</h2><div id="history" class="log"><div class="hint">尚未进行对局。</div></div></section>
+<section class="card"><h2>计分与上场规则</h2><div class="hint">
+• 初始双方各 10 分，共进行 4 轮，最后比较分数。<br>
+• 石头克剪刀、剪刀克布、布克石头，被克制方 −2 分；平局不扣分。<br>
+• 任一方派出「不接」，仅取消本轮猜拳阶段的分数变化；合作/背叛仍照常判定。<br>
+• 双方合作：各 +1 分；合作遇背叛：合作方 −2 分、背叛方 +2 分；双方背叛：各 −1 分。<br>
+• 只要任一方选择不作为，合作/背叛计分无效，但猜拳仍照常判定。<br>
+• 每个普通角色最多上场 2 次；「不接」角色最多上场 1 次。角色可重复上场，达到次数上限后不能再选。
+</div></section><p class="footer-note">本网页为双人同屏模式。双方依次在同一设备上选择；选择确认后会隐藏决策，双方都确认后才能揭晓。</p>
+</div>
+<script>
+(() => {
+const ELEMENTS=["石头","剪刀","布","不接"];
+const DEFAULTS={A:[
+{name:"蓝色角色 1",element:"石头",color:"#3478f6"},{name:"蓝色角色 2",element:"剪刀",color:"#55a6ff"},{name:"蓝色角色 3",element:"布",color:"#2456b8"},{name:"蓝色角色 4",element:"不接",color:"#8ab8ff"}],
+B:[{name:"红色角色 1",element:"石头",color:"#e65353"},{name:"红色角色 2",element:"剪刀",color:"#ff8878"},{name:"红色角色 3",element:"布",color:"#b93643"},{name:"红色角色 4",element:"不接",color:"#ffb0a7"}]};
+let teams=cloneDefaults(),scoreA=10,scoreB=10,round=1,lockedA=false,lockedB=false,resolved=false,gameOver=false,hiddenA=null,hiddenB=null,history=[],uses={A:[0,0,0,0],B:[0,0,0,0]},setupConfirmed=false;
+const $=id=>document.getElementById(id);
+function cloneDefaults(){return JSON.parse(JSON.stringify(DEFAULTS))}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderSetup(){["A","B"].forEach(t=>{$("setup"+t).innerHTML=teams[t].map((c,i)=>`<div class="character-row"><div class="char-label"><span class="dot" style="background:${c.color}"></span><input type="text" aria-label="角色${i+1}名称" data-team="${t}" data-index="${i}" class="name-input" value="${esc(c.name)}" maxlength="24"></div><select aria-label="角色${i+1}属性" data-team="${t}" data-index="${i}" class="element-input">${ELEMENTS.map(e=>`<option value="${e}" ${c.element===e?"selected":""}>${e}</option>`).join("")}</select></div>`).join("")})}
+function readSetup(){["A","B"].forEach(t=>{document.querySelectorAll(`.name-input[data-team="${t}"]`).forEach(el=>teams[t][+el.dataset.index].name=el.value.trim()||`${t==="A"?"蓝色":"红色"}角色 ${+el.dataset.index+1}`);document.querySelectorAll(`.element-input[data-team="${t}"]`).forEach(el=>teams[t][+el.dataset.index].element=el.value)})}
+function fillPicks(){["A","B"].forEach(t=>{let sel=$("pick"+t),old=sel.value;sel.innerHTML=teams[t].map((c,i)=>`<option value="${i}">${esc(c.name)} · ${c.element} · ${c.color}</option>`).join("");if(old!=="")sel.value=old;refreshAvailability(t)})}
+function getSocial(t){return document.querySelector(`input[name="social${t}"]:checked`)?.value||"合作"}
+function setSocialDisabled(t,d){document.querySelectorAll(`input[name="social${t}"]`).forEach(el=>el.disabled=d)}
+function refreshAvailability(t){let sel=$("pick"+t),old=sel.value;[...sel.options].forEach((o,i)=>{const max=teams[t][i].element==="不接"?1:2;o.disabled=uses[t][i]>=max});if(old!==""&&sel.options[+old]&&!sel.options[+old].disabled)sel.value=old;else{let first=[...sel.options].find(o=>!o.disabled);if(first)sel.value=first.value}const idx=+sel.value;if(teams[t][idx])$("uses"+t).textContent=`该角色已上场 ${uses[t][idx]} 次；最多 ${teams[t][idx].element==="不接"?1:2} 次。`;const allFull=[...sel.options].every(o=>o.disabled);if(allFull&&!resolved&&!gameOver)$("phaseStatus").textContent=(t==="A"?"蓝队":"红队")+"已没有可用角色，但游戏仍按已确认规则进行。"}
+function setTeamLocked(t,locked){$("pick"+t).disabled=locked||!setupConfirmed;setSocialDisabled(t,locked||!setupConfirmed);$("lock"+t).disabled=locked||resolved||gameOver||!setupConfirmed;$("lock"+t).textContent=locked?(t==="A"?"蓝队已隐藏选择":"红队已隐藏选择"):(t==="A"?"蓝队确认并隐藏":"红队确认并隐藏");$("lock"+t+"Status").textContent=locked?(t==="A"?"蓝队决策已隐藏。":"红队决策已隐藏。"):(t==="A"?"蓝队尚未锁定选择。":"红队尚未锁定选择。")}
+function updateStatus(){ $("scoreA").textContent=scoreA;$("scoreB").textContent=scoreB;$("roundLabel").textContent=`第 ${Math.min(round,4)} / 4 轮`;if(gameOver)$("phaseStatus").textContent="四轮结束，最终比分已确定。";else if(!setupConfirmed)$("phaseStatus").textContent="请先确认开局角色配置。";else if(resolved)$("phaseStatus").textContent="本轮已揭晓并结算。点击“进入下一轮”继续。";else if(lockedA&&lockedB)$("phaseStatus").textContent="双方决策均已隐藏。现在可以揭晓并结算。";else if(lockedA)$("phaseStatus").textContent="蓝队已锁定。请红队选择；蓝队决策保持隐藏。";else if(lockedB)$("phaseStatus").textContent="红队已锁定。请蓝队选择；红队决策保持隐藏。";else $("phaseStatus").textContent="双方依次选择上场角色与隐藏决策。角色颜色可见，决策在双方确认后统一揭晓。";$("revealBtn").disabled=!(lockedA&&lockedB)||resolved||gameOver;$("nextBtn").disabled=!resolved||gameOver}
+function compare(a,b){if(a==="不接"||b==="不接"||a===b)return 0;if((a==="石头"&&b==="剪刀")||(a==="剪刀"&&b==="布")||(a==="布"&&b==="石头"))return 1;return -1}
+function resolve(){if(!(lockedA&&lockedB)||resolved||gameOver)return;resolved=true;const ca=teams.A[hiddenA.index],cb=teams.B[hiddenB.index];uses.A[hiddenA.index]++;uses.B[hiddenB.index]++;let da=0,db=0,details=[];const er=compare(ca.element,cb.element);
+if(er===1){db-=2;details.push(`猜拳：蓝队「${ca.element}」克制红队「${cb.element}」，红队 −2 分。`)}else if(er===-1){da-=2;details.push(`猜拳：红队「${cb.element}」克制蓝队「${ca.element}」，蓝队 −2 分。`)}else if(ca.element==="不接"||cb.element==="不接")details.push("猜拳：至少一方为「不接」，猜拳阶段双方均不扣分。");else details.push("猜拳：双方属性相同，双方均不扣分。");
+if(hiddenA.social==="不作为"||hiddenB.social==="不作为")details.push("合作/背叛：至少一方选择不作为，本项计分无效。");
+else if(hiddenA.social==="合作"&&hiddenB.social==="合作"){da++;db++;details.push("双方合作：蓝队 +1 分，红队 +1 分。")}
+else if(hiddenA.social==="合作"&&hiddenB.social==="背叛"){da-=2;db+=2;details.push("蓝队合作、红队背叛：蓝队 −2 分，红队 +2 分。")}
+else if(hiddenA.social==="背叛"&&hiddenB.social==="合作"){da+=2;db-=2;details.push("蓝队背叛、红队合作：蓝队 +2 分，红队 −2 分。")}
+else {da--;db--;details.push("双方都背叛：蓝队 −1 分，红队 −1 分。")}
+scoreA+=da;scoreB+=db;$("scoreA").textContent=scoreA;$("scoreB").textContent=scoreB;
+$("revealArea").innerHTML=`<div class="reveal-box"><h3>第 ${round} 轮揭晓</h3><div class="reveal-grid"><div class="reveal-side"><div class="result-title" style="color:var(--blue)">🔵 蓝队</div><div><span class="dot" style="display:inline-block;background:${ca.color};vertical-align:middle"></span> <b>${esc(ca.name)}</b>（${ca.element}）</div><div>决策：<b>${hiddenA.social}</b></div><div>角色上场次数：${uses.A[hiddenA.index]}/${ca.element==="不接"?1:2}</div><div class="${da>0?"positive":da<0?"negative":""}">本轮变化：${da>0?"+":""}${da}</div></div><div class="reveal-side"><div class="result-title" style="color:var(--red)">🔴 红队</div><div><span class="dot" style="display:inline-block;background:${cb.color};vertical-align:middle"></span> <b>${esc(cb.name)}</b>（${cb.element}）</div><div>决策：<b>${hiddenB.social}</b></div><div>角色上场次数：${uses.B[hiddenB.index]}/${cb.element==="不接"?1:2}</div><div class="${db>0?"positive":db<0?"negative":""}">本轮变化：${db>0?"+":""}${db}</div></div></div><ul>${details.map(d=>`<li>${esc(d)}</li>`).join("")}</ul></div>`;
+history.unshift({round,ca,cb,sa:hiddenA.social,sb:hiddenB.social,da,db,scoreA,scoreB,usesA:uses.A[hiddenA.index],usesB:uses.B[hiddenB.index],details});renderHistory();refreshAvailability("A");refreshAvailability("B");$("nextBtn").disabled=false;$("revealBtn").disabled=true;updateStatus()}
+function renderHistory(){if(!history.length){$("history").innerHTML='<div class="hint">尚未进行对局。</div>';return}$("history").innerHTML=history.map(x=>`<div class="log-item"><div class="log-head"><b>第 ${x.round} 轮</b><span class="small">蓝队 ${x.scoreA} · 红队 ${x.scoreB}</span></div><div class="hint">🔵 ${esc(x.ca.name)}（${x.ca.element}，${x.sa}） <b class="${x.da>0?"positive":x.da<0?"negative":""}">${x.da>0?"+":""}${x.da}</b></div><div class="hint">🔴 ${esc(x.cb.name)}（${x.cb.element}，${x.sb}） <b class="${x.db>0?"positive":x.db<0?"negative":""}">${x.db>0?"+":""}${x.db}</b></div></div>`).join("")}
+function clearRound(){lockedA=false;lockedB=false;resolved=false;hiddenA=null;hiddenB=null;$("revealArea").innerHTML="";["A","B"].forEach(t=>{document.querySelector(`input[name="social${t}"][value="合作"]`).checked=true;setTeamLocked(t,false);refreshAvailability(t)});updateStatus()}
+function finish(){gameOver=true;$("nextBtn").disabled=true;$("revealBtn").disabled=true;$("pickA").disabled=true;$("pickB").disabled=true;setSocialDisabled("A",true);setSocialDisabled("B",true);$("lockA").disabled=true;$("lockB").disabled=true;const v=scoreA>scoreB?"🔵 蓝队获胜！":scoreB>scoreA?"🔴 红队获胜！":"平局！";$("revealArea").innerHTML+=`<div class="winner">四轮结束 · ${v}<div style="font-size:15px;margin-top:8px;font-weight:600">最终比分：蓝队 ${scoreA} 分 · 红队 ${scoreB} 分</div></div>`;updateStatus()}
+$("saveSetup").addEventListener("click",()=>{if(setupConfirmed)return;readSetup();let errors=[];["A","B"].forEach(t=>{const es=teams[t].map(c=>c.element);if(ELEMENTS.some(e=>es.filter(x=>x===e).length!==1))errors.push((t==="A"?"蓝队":"红队")+"必须将石头、剪刀、布、不接各分配给一个角色，不能重复。")});if(errors.length){$("setupMessage").textContent=errors.join(" ");return}setupConfirmed=true;document.querySelectorAll(".name-input,.element-input").forEach(el=>el.disabled=true);$("saveSetup").disabled=true;$("resetSetup").disabled=true;$("setupMessage").textContent="配置已锁定：开局绑定属性，整局不可更改。";fillPicks();["A","B"].forEach(t=>setTeamLocked(t,false));updateStatus()});
+$("resetSetup").addEventListener("click",()=>{if(setupConfirmed)return;teams=cloneDefaults();renderSetup();fillPicks();$("setupMessage").textContent="已恢复默认配置。"});
+$("pickA").addEventListener("change",()=>refreshAvailability("A"));$("pickB").addEventListener("change",()=>refreshAvailability("B"));
+$("lockA").addEventListener("click",()=>{if(lockedA||resolved||gameOver||!setupConfirmed)return;const i=+$("pickA").value;if(uses.A[i]>=(teams.A[i].element==="不接"?1:2)){alert("该角色已达到上场次数上限。");return}hiddenA={index:i,social:getSocial("A")};lockedA=true;setTeamLocked("A",true);updateStatus()});
+$("lockB").addEventListener("click",()=>{if(lockedB||resolved||gameOver||!setupConfirmed)return;const i=+$("pickB").value;if(uses.B[i]>=(teams.B[i].element==="不接"?1:2)){alert("该角色已达到上场次数上限。");return}hiddenB={index:i,social:getSocial("B")};lockedB=true;setTeamLocked("B",true);updateStatus()});
+$("revealBtn").addEventListener("click",resolve);$("nextBtn").addEventListener("click",()=>{if(!resolved||gameOver)return;if(round>=4){finish();return}round++;clearRound()});
+$("restartBtn").addEventListener("click",()=>{scoreA=10;scoreB=10;round=1;history=[];uses={A:[0,0,0,0],B:[0,0,0,0]};lockedA=false;lockedB=false;resolved=false;gameOver=false;hiddenA=null;hiddenB=null;$("revealArea").innerHTML="";renderHistory();clearRound();if(setupConfirmed){fillPicks();["A","B"].forEach(t=>{setTeamLocked(t,false);$("pick"+t).disabled=false})}updateStatus()});
+renderSetup();fillPicks();["A","B"].forEach(t=>{setTeamLocked(t,false);$("pick"+t).disabled=true;setSocialDisabled(t,true)});updateStatus();
+})();
+</script>
+</body>
+</html>
